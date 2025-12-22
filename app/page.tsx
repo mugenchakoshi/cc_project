@@ -3,6 +3,16 @@
 import { useState } from 'react';
 import { MUSIC_GENRES, CreateEventResponse } from './types';
 
+/**
+ * このコンポーネントはSSG（Static Site Generation）で動作します
+ *
+ * Next.js App Routerでは、'use client'コンポーネントも
+ * ビルド時に静的HTMLとして生成され、クライアント側でハイドレーションされます
+ *
+ * - ビルド時: 初期HTMLが静的生成される
+ * - ランタイム: クライアント側で位置情報取得、API呼び出しが実行される
+ */
+
 export default function HomePage() {
   const [genre, setGenre] = useState<string>('');
   const [memo, setMemo] = useState('');
