@@ -97,24 +97,6 @@ export default function HomePage() {
         位置情報ベース音楽推薦アプリ (MVP)
       </h1>
 
-      {/* プライバシー同意文言 */}
-      <div style={{
-        background: '#f0f9ff',
-        border: '1px solid #0ea5e9',
-        borderRadius: '4px',
-        padding: '12px',
-        marginBottom: '20px',
-        fontSize: '14px'
-      }}>
-        <strong>プライバシーについて:</strong>
-        <ul style={{ marginTop: '8px', marginLeft: '20px' }}>
-          <li>位置情報は音楽推薦のためにのみ使用されます</li>
-          <li>取得された位置情報はサーバーに送信・保存されます</li>
-          <li>精度は自動的に調整される場合があります</li>
-          <li>データは適切に管理され、第三者に提供されることはありません</li>
-        </ul>
-      </div>
-
       {/* フォーム */}
       <div style={{ marginBottom: '20px' }}>
         <div style={{ marginBottom: '16px' }}>
