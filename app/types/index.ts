@@ -10,26 +10,23 @@ export interface LocationEvent {
   spotifyTrackId?: string;
 }
 
-// APIリクエストの型
+// APIリクエストの型（API Gateway用）
 export interface CreateEventRequest {
-  latitude: number;
-  longitude: number;
-  accuracy: number;
-  memo?: string;
+  lat: number;
+  lng: number;
+  note?: string;
   genre?: string;
 }
 
-// APIレスポンスの型
+// APIレスポンスの型（API Gateway用）
 export interface CreateEventResponse {
-  success: boolean;
-  eventId?: string;
-  timestamp?: string;
-  spotifyTrackId?: string;
-  trackInfo?: {
-    name: string;
-    artist: string;
+  song: string;
+  artist: string;
+  location: {
+    lat: string;
+    lng: string;
   };
-  error?: string;
+  spotify_id: string;
 }
 
 // 音楽ジャンル

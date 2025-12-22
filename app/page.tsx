@@ -47,26 +47,28 @@ export default function HomePage() {
       const { latitude, longitude, accuracy } = position.coords;
       setLocationStatus(`位置情報取得成功 (精度: ${Math.round(accuracy)}m)`);
 
-      // APIに送信
+      // Next.js API Route経由でAWS API Gatewayに送信（CORS回避）
       const response = await fetch('/api/events', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          latitude,
-          longitude,
-          accuracy,
-          memo: memo.trim() || undefined,
+          lat: latitude,
+          lng: longitude,
+          note: memo.trim() || undefined,
           genre: genre || undefined
         })
       });
 
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      }
+
       const data: CreateEventResponse = await response.json();
 
-      if (!data.success) {
-        throw new Error(data.error || '送信に失敗しました');
-      }
+      // デバッグ: レスポンスを確認
+      console.log('API Response:', data);
 
       setResult(data);
       setLocationStatus('送信成功');
@@ -190,13 +192,13 @@ export default function HomePage() {
       )}
 
       {/* 結果表示 */}
-      {result && result.success && (
+      {result && (
         <div style={{ marginTop: '24px' }}>
           <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '16px' }}>
             おすすめの楽曲
           </h2>
 
-          {/* イベント情報 */}
+          {/* 楽曲情報 */}
           <div style={{
             backgroundColor: '#f9fafb',
             padding: '12px',
@@ -204,22 +206,19 @@ export default function HomePage() {
             marginBottom: '16px',
             fontSize: '14px'
           }}>
-            <div><strong>イベントID:</strong> {result.eventId}</div>
-            <div><strong>送信時刻:</strong> {result.timestamp && new Date(result.timestamp).toLocaleString('ja-JP')}</div>
-            {result.trackInfo && (
-              <>
-                <div><strong>楽曲名:</strong> {result.trackInfo.name}</div>
-                <div><strong>アーティスト:</strong> {result.trackInfo.artist}</div>
-              </>
+            <div><strong>楽曲名:</strong> {result.song}</div>
+            <div><strong>アーティスト:</strong> {result.artist}</div>
+            {result.location && (
+              <div><strong>位置情報:</strong> {result.location.lat}, {result.location.lng}</div>
             )}
-            <div><strong>Spotify Track ID:</strong> {result.spotifyTrackId}</div>
+            <div><strong>Spotify Track ID:</strong> {result.spotify_id}</div>
           </div>
 
           {/* Spotify埋め込みWidget */}
-          {result.spotifyTrackId && (
+          {result.spotify_id && (
             <div style={{ marginTop: '16px' }}>
               <iframe
-                src={`https://open.spotify.com/embed/track/${result.spotifyTrackId}`}
+                src={`https://open.spotify.com/embed/track/${result.spotify_id}`}
                 width="100%"
                 height="352"
                 frameBorder="0"
