@@ -154,14 +154,26 @@ export function LocationMap({ currentLocation, events = [], onMapLoad }: Locatio
         .setLngLat([event.longitude, event.latitude])
         .setPopup(
           new maplibregl.Popup({ offset: 25 }).setHTML(`
-            <div style="padding: 8px;">
-              <strong>${event.genre || 'ジャンル未選択'}</strong><br/>
-              <span style="font-size: 12px; color: #666;">
-                ${event.memo || 'メモなし'}
-              </span><br/>
-              <span style="font-size: 11px; color: #999;">
-                ${new Date(event.timestamp).toLocaleString('ja-JP')}
-              </span>
+            <div style="padding: 8px; min-width: 200px;">
+              <strong style="font-size: 14px;">${event.genre || 'ジャンル未選択'}</strong><br/>
+              ${event.song ? `
+                <div style="margin-top: 6px; padding: 6px; background-color: #f3f4f6; border-radius: 4px;">
+                  <div style="font-size: 12px; font-weight: 600; color: #1f2937;">
+                    🎵 ${event.song}
+                  </div>
+                  <div style="font-size: 11px; color: #6b7280;">
+                    ${event.artist || '不明'}
+                  </div>
+                </div>
+              ` : ''}
+              ${event.memo ? `
+                <div style="font-size: 12px; color: #666; margin-top: 6px;">
+                  📝 ${event.memo}
+                </div>
+              ` : ''}
+              <div style="font-size: 11px; color: #999; margin-top: 6px;">
+                🕒 ${new Date(event.timestamp).toLocaleString('ja-JP')}
+              </div>
             </div>
           `)
         )

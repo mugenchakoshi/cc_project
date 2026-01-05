@@ -14,6 +14,8 @@ import { useGeolocation } from './hooks/useGeolocation';
  * - 右側: サイドバー（フォーム + 送信履歴）
  */
 
+export const dynamic = 'force-static';
+
 export default function HomePage() {
   // フォーム状態
   const [genre, setGenre] = useState<string>('');
@@ -30,7 +32,7 @@ export default function HomePage() {
   const geolocation = useGeolocation({
     enableHighAccuracy: true,
     timeout: 40000,
-    watch: false, // 必要に応じてtrueに変更
+    watch: false,  // ページ読み込み時から位置情報を自動取得
   });
 
   /**
@@ -48,29 +50,7 @@ export default function HomePage() {
     initSession();
   }, []);
 
-  /**
-   * 送信履歴を取得
-   */
-  useEffect(() => {
-    async function fetchEvents() {
-      try {
-        const response = await fetch('/api/events');
-        const data = await response.json();
-        if (data.success && data.events) {
-          setEvents(data.events);
-        }
-      } catch (error) {
-        console.error('送信履歴の取得に失敗:', error);
-      }
-    }
-
-    fetchEvents();
-
-    // 定期的に更新（オプション）
-    const interval = setInterval(fetchEvents, 30000); // 30秒ごと
-
-    return () => clearInterval(interval);
-  }, []);
+  // 送信履歴の取得は不要（POSTレスポンスで直近3件が返る）
 
   /**
    * 位置情報取得＆送信
@@ -121,18 +101,31 @@ export default function HomePage() {
       // デバッグ: レスポンスを確認
       console.log('API Response:', data);
 
-      setResult(data);
+      // POSTレスポンスは直近3件の配列
+      // 最新の1件をresultに設定（Spotifyプレーヤー用）
+      if (data.length > 0) {
+        setResult(data);
+      }
+
+      // 配列をLocationEvent型に変換してeventsに設定
+      const convertedEvents: LocationEvent[] = data.map((item, index) => ({
+        eventId: `evt_${Date.now()}_${index}`,  // 仮のID
+        latitude: parseFloat(item.location.lat),
+        longitude: parseFloat(item.location.lng),
+        accuracy: 0,  // レスポンスに含まれない
+        genre: genre || undefined,
+        memo: memo || undefined,
+        timestamp: new Date().toISOString(),  // 仮のタイムスタンプ
+        spotifyTrackId: item.spotify_id,
+        song: item.song,
+        artist: item.artist,
+      }));
+
+      setEvents(convertedEvents);
       setLocationStatus('送信成功');
 
       // フォームリセット
       setMemo('');
-
-      // 送信履歴を更新
-      const eventsResponse = await fetch('/api/events');
-      const eventsData = await eventsResponse.json();
-      if (eventsData.success && eventsData.events) {
-        setEvents(eventsData.events);
-      }
 
     } catch (err: any) {
       console.error('Error:', err);

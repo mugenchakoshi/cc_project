@@ -170,7 +170,7 @@ export function Sidebar({
         )}
 
         {/* 結果表示 */}
-        {result && (
+        {result && result.length > 0 && (
           <div style={{ marginBottom: '24px' }}>
             <h2 style={{
               fontSize: '16px',
@@ -188,22 +188,22 @@ export function Sidebar({
               fontSize: '13px',
             }}>
               <div style={{ marginBottom: '4px' }}>
-                <strong>{result.song}</strong>
+                <strong>{result[0].song}</strong>
               </div>
               <div style={{ color: '#6b7280', marginBottom: '8px' }}>
-                {result.artist}
+                {result[0].artist}
               </div>
-              {result.location && (
+              {result[0].location && (
                 <div style={{ fontSize: '11px', color: '#9ca3af' }}>
-                  {result.location.lat}, {result.location.lng}
+                  {result[0].location.lat}, {result[0].location.lng}
                 </div>
               )}
             </div>
 
             {/* Spotify Widget */}
-            {result.spotify_id && (
+            {result[0].spotify_id && (
               <iframe
-                src={`https://open.spotify.com/embed/track/${result.spotify_id}`}
+                src={`https://open.spotify.com/embed/track/${result[0].spotify_id}`}
                 width="100%"
                 height="200"
                 frameBorder="0"

@@ -6,6 +6,8 @@ import { randomBytes } from 'crypto';
  * ユーザーごとに一意のIDを発行してCookieに保存
  */
 
+export const dynamic = 'force-dynamic';
+
 const COOKIE_NAME = 'user_session_id';
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1年
 
