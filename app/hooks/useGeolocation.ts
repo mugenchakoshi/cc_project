@@ -2,7 +2,7 @@
  * 位置情報取得カスタムフック
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 export interface GeolocationState {
   latitude: number | null;
@@ -35,7 +35,7 @@ export function useGeolocation(options: UseGeolocationOptions = {}) {
     loading: false,
   });
 
-  const [watchId, setWatchId] = useState<number | null>(null);
+  const watchIdRef = useRef<number | null>(null);
 
   /**
    * 位置情報取得成功時のコールバック
@@ -111,6 +111,11 @@ export function useGeolocation(options: UseGeolocationOptions = {}) {
       return;
     }
 
+    // 既存の監視を停止
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+    }
+
     setState((prev) => ({ ...prev, loading: true, error: null }));
 
     const id = navigator.geolocation.watchPosition(onSuccess, onError, {
@@ -119,19 +124,19 @@ export function useGeolocation(options: UseGeolocationOptions = {}) {
       maximumAge,
     });
 
-    setWatchId(id);
+    watchIdRef.current = id;
   }, [enableHighAccuracy, timeout, maximumAge, onSuccess, onError]);
 
   /**
    * 位置情報の監視を停止
    */
   const stopWatching = useCallback(() => {
-    if (watchId !== null) {
-      navigator.geolocation.clearWatch(watchId);
-      setWatchId(null);
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
       setState((prev) => ({ ...prev, loading: false }));
     }
-  }, [watchId]);
+  }, []);
 
   /**
    * 監視モードの場合は自動開始
@@ -150,6 +155,6 @@ export function useGeolocation(options: UseGeolocationOptions = {}) {
     getCurrentPosition,
     startWatching,
     stopWatching,
-    isWatching: watchId !== null,
+    isWatching: watchIdRef.current !== null,
   };
 }

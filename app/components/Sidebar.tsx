@@ -229,7 +229,7 @@ export function Sidebar({
             </h3>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {events.slice().reverse().slice(0, 10).map((event) => (
+              {events.slice().reverse().slice(0, 5).map((event) => (
                 <div
                   key={event.eventId}
                   style={{
@@ -247,9 +247,20 @@ export function Sidebar({
                     e.currentTarget.style.backgroundColor = '#f9fafb';
                   }}
                 >
-                  <div style={{ fontWeight: '600' }}>
-                    📍 {event.genre || 'ジャンル未選択'}
-                  </div>
+                  {event.song && event.artist ? (
+                    <>
+                      <div style={{ fontWeight: '600', marginBottom: '4px' }}>
+                        🎵 {event.song}
+                      </div>
+                      <div style={{ color: '#6b7280', fontSize: '12px' }}>
+                        {event.artist}
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ fontWeight: '600' }}>
+                      📍 {event.genre || 'ジャンル未選択'}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
