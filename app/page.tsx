@@ -1,25 +1,76 @@
 'use client';
 
-import { useState } from 'react';
-import { MUSIC_GENRES, CreateEventResponse } from './types';
+import { useState, useEffect } from 'react';
+import { CreateEventResponse, LocationEvent } from './types';
+import { LocationMap } from './components/LocationMap';
+import { Sidebar } from './components/Sidebar';
+import { useGeolocation } from './hooks/useGeolocation';
 
 /**
  * このコンポーネントはSSG（Static Site Generation）で動作します
  *
- * Next.js App Routerでは、'use client'コンポーネントも
- * ビルド時に静的HTMLとして生成され、クライアント側でハイドレーションされます
- *
- * - ビルド時: 初期HTMLが静的生成される
- * - ランタイム: クライアント側で位置情報取得、API呼び出しが実行される
+ * Google Maps風のUIで位置情報ベースの音楽推薦を提供
+ * - 左側: 地図表示（Amazon Location Service / OpenStreetMap）
+ * - 右側: サイドバー（フォーム + 送信履歴）
  */
 
 export default function HomePage() {
+  // フォーム状態
   const [genre, setGenre] = useState<string>('');
   const [memo, setMemo] = useState('');
   const [loading, setLoading] = useState(false);
   const [locationStatus, setLocationStatus] = useState<string>('');
   const [result, setResult] = useState<CreateEventResponse | null>(null);
   const [error, setError] = useState<string>('');
+
+  // 送信履歴
+  const [events, setEvents] = useState<LocationEvent[]>([]);
+
+  // 位置情報フック（監視モード）
+  const geolocation = useGeolocation({
+    enableHighAccuracy: true,
+    timeout: 40000,
+    watch: false, // 必要に応じてtrueに変更
+  });
+
+  /**
+   * セッション初期化（ユーザー識別用Cookie）
+   */
+  useEffect(() => {
+    async function initSession() {
+      try {
+        await fetch('/api/session');
+      } catch (error) {
+        console.error('セッション初期化に失敗:', error);
+      }
+    }
+
+    initSession();
+  }, []);
+
+  /**
+   * 送信履歴を取得
+   */
+  useEffect(() => {
+    async function fetchEvents() {
+      try {
+        const response = await fetch('/api/events');
+        const data = await response.json();
+        if (data.success && data.events) {
+          setEvents(data.events);
+        }
+      } catch (error) {
+        console.error('送信履歴の取得に失敗:', error);
+      }
+    }
+
+    fetchEvents();
+
+    // 定期的に更新（オプション）
+    const interval = setInterval(fetchEvents, 30000); // 30秒ごと
+
+    return () => clearInterval(interval);
+  }, []);
 
   /**
    * 位置情報取得＆送信
@@ -31,7 +82,7 @@ export default function HomePage() {
     setResult(null);
 
     try {
-      // Geolocation API で位置情報取得
+      // Geolocation APIで位置情報取得
       if (!navigator.geolocation) {
         throw new Error('このブラウザは位置情報に対応していません');
       }
@@ -76,6 +127,13 @@ export default function HomePage() {
       // フォームリセット
       setMemo('');
 
+      // 送信履歴を更新
+      const eventsResponse = await fetch('/api/events');
+      const eventsData = await eventsResponse.json();
+      if (eventsData.success && eventsData.events) {
+        setEvents(eventsData.events);
+      }
+
     } catch (err: any) {
       console.error('Error:', err);
       if (err.code === 1) {
@@ -93,144 +151,41 @@ export default function HomePage() {
     }
   };
 
+  // 現在位置（最後に送信した位置または取得中の位置）
+  const currentLocation = geolocation.latitude && geolocation.longitude
+    ? { latitude: geolocation.latitude, longitude: geolocation.longitude }
+    : events.length > 0
+    ? { latitude: events[events.length - 1].latitude, longitude: events[events.length - 1].longitude }
+    : null;
+
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
-      <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '20px' }}>
-        位置情報ベース音楽推薦アプリ (MVP)
-      </h1>
-
-      {/* フォーム */}
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
-            音楽ジャンル（任意）
-          </label>
-          <select
-            value={genre}
-            onChange={(e) => setGenre(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              fontSize: '14px'
-            }}
-            disabled={loading}
-          >
-            <option value="">-- 選択してください --</option>
-            {MUSIC_GENRES.map((g) => (
-              <option key={g} value={g}>{g}</option>
-            ))}
-          </select>
-        </div>
-
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
-            メモ（任意）
-          </label>
-          <textarea
-            value={memo}
-            onChange={(e) => setMemo(e.target.value)}
-            placeholder="今の気分や場所のメモを入力..."
-            rows={3}
-            style={{
-              width: '100%',
-              padding: '8px',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              fontSize: '14px',
-              resize: 'vertical'
-            }}
-            disabled={loading}
-          />
-        </div>
-
-        <button
-          onClick={handleSubmit}
-          disabled={loading}
-          style={{
-            width: '100%',
-            padding: '12px',
-            backgroundColor: loading ? '#9ca3af' : '#3b82f6',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            fontSize: '16px',
-            fontWeight: '500',
-            cursor: loading ? 'not-allowed' : 'pointer'
-          }}
-        >
-          {loading ? '処理中...' : '位置情報を取得して送信'}
-        </button>
+    <div style={{
+      width: '100vw',
+      height: '100vh',
+      display: 'flex',
+      overflow: 'hidden',
+    }}>
+      {/* 地図エリア */}
+      <div style={{ flex: 1, position: 'relative' }}>
+        <LocationMap
+          currentLocation={currentLocation}
+          events={events}
+        />
       </div>
 
-      {/* ステータス表示 */}
-      {locationStatus && (
-        <div style={{
-          padding: '12px',
-          backgroundColor: '#f0fdf4',
-          border: '1px solid #86efac',
-          borderRadius: '4px',
-          marginBottom: '16px'
-        }}>
-          {locationStatus}
-        </div>
-      )}
-
-      {/* エラー表示 */}
-      {error && (
-        <div style={{
-          padding: '12px',
-          backgroundColor: '#fef2f2',
-          border: '1px solid #fca5a5',
-          borderRadius: '4px',
-          marginBottom: '16px',
-          color: '#dc2626'
-        }}>
-          {error}
-        </div>
-      )}
-
-      {/* 結果表示 */}
-      {result && (
-        <div style={{ marginTop: '24px' }}>
-          <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '16px' }}>
-            おすすめの楽曲
-          </h2>
-
-          {/* 楽曲情報 */}
-          <div style={{
-            backgroundColor: '#f9fafb',
-            padding: '12px',
-            borderRadius: '4px',
-            marginBottom: '16px',
-            fontSize: '14px'
-          }}>
-            <div><strong>楽曲名:</strong> {result.song}</div>
-            <div><strong>アーティスト:</strong> {result.artist}</div>
-            {result.location && (
-              <div><strong>位置情報:</strong> {result.location.lat}, {result.location.lng}</div>
-            )}
-            <div><strong>Spotify Track ID:</strong> {result.spotify_id}</div>
-          </div>
-
-          {/* Spotify埋め込みWidget */}
-          {result.spotify_id && (
-            <div style={{ marginTop: '16px' }}>
-              <iframe
-                src={`https://open.spotify.com/embed/track/${result.spotify_id}`}
-                width="100%"
-                height="352"
-                frameBorder="0"
-                allowFullScreen
-                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                loading="lazy"
-                style={{ borderRadius: '8px' }}
-              />
-            </div>
-          )}
-        </div>
-      )}
+      {/* サイドバーエリア */}
+      <Sidebar
+        genre={genre}
+        setGenre={setGenre}
+        memo={memo}
+        setMemo={setMemo}
+        loading={loading}
+        locationStatus={locationStatus}
+        error={error}
+        result={result}
+        onSubmit={handleSubmit}
+        events={events}
+      />
     </div>
   );
 }
