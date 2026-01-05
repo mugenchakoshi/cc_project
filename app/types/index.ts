@@ -8,6 +8,9 @@ export interface LocationEvent {
   genre?: string;
   timestamp: string;
   spotifyTrackId?: string;
+  // 曲情報（バックエンドから返される場合）
+  song?: string;
+  artist?: string;
 }
 
 // APIリクエストの型（API Gateway用）
@@ -19,7 +22,8 @@ export interface CreateEventRequest {
 }
 
 // APIレスポンスの型（API Gateway用）
-export interface CreateEventResponse {
+// POSTは直近3件の配列を返す
+export interface CreateEventResponseItem {
   song: string;
   artist: string;
   location: {
@@ -28,6 +32,8 @@ export interface CreateEventResponse {
   };
   spotify_id: string;
 }
+
+export type CreateEventResponse = CreateEventResponseItem[];
 
 // 音楽ジャンル
 export const MUSIC_GENRES = [
