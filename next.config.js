@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // 注意: API Routeをプロキシとして使用するため、output: 'export'は無効化
-  // SSGページ + サーバーレスAPI Routeのハイブリッド構成
+  // S3での静的ホスティング用に完全静的エクスポート
+  output: 'export',
 
   // Spotify埋め込みWidgetのため
   images: {

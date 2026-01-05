@@ -247,16 +247,8 @@ export function Sidebar({
                     e.currentTarget.style.backgroundColor = '#f9fafb';
                   }}
                 >
-                  <div style={{ fontWeight: '600', marginBottom: '4px' }}>
+                  <div style={{ fontWeight: '600' }}>
                     📍 {event.genre || 'ジャンル未選択'}
-                  </div>
-                  {event.memo && (
-                    <div style={{ color: '#6b7280', marginBottom: '4px', fontSize: '12px' }}>
-                      {event.memo}
-                    </div>
-                  )}
-                  <div style={{ fontSize: '11px', color: '#9ca3af' }}>
-                    {new Date(event.timestamp).toLocaleString('ja-JP')}
                   </div>
                 </div>
               ))}

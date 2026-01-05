@@ -1,7 +1,8 @@
 'use client';
 
 /**
- * Amazon Location Service を使用した地図コンポーネント
+ * OpenStreetMapを使用した地図コンポーネント
+ * MapLibre GLでレンダリング
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -23,6 +24,7 @@ export function LocationMap({ currentLocation, events = [], onMapLoad }: Locatio
   const eventMarkers = useRef<maplibregl.Marker[]>([]);
 
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [hasInitialCentered, setHasInitialCentered] = useState(false);
 
   /**
    * 地図の初期化
@@ -102,7 +104,7 @@ export function LocationMap({ currentLocation, events = [], onMapLoad }: Locatio
       currentMarker.current.remove();
     }
 
-    // 新しいマーカーを作成
+    // 新しいマーカーを作成（常に更新）
     const el = document.createElement('div');
     el.className = 'current-location-marker';
     el.style.width = '20px';
@@ -121,14 +123,17 @@ export function LocationMap({ currentLocation, events = [], onMapLoad }: Locatio
       )
       .addTo(map.current);
 
-    // 地図を現在位置に移動
-    map.current.flyTo({
-      center: [longitude, latitude],
-      zoom: 15,
-      duration: 1000,
-    });
+    // 地図を現在位置に移動（初回のみ）
+    if (!hasInitialCentered) {
+      map.current.flyTo({
+        center: [longitude, latitude],
+        zoom: 15,
+        duration: 1000,
+      });
+      setHasInitialCentered(true);
+    }
 
-  }, [currentLocation, mapLoaded]);
+  }, [currentLocation, mapLoaded, hasInitialCentered]);
 
   /**
    * イベントピンの更新
@@ -155,7 +160,7 @@ export function LocationMap({ currentLocation, events = [], onMapLoad }: Locatio
         .setPopup(
           new maplibregl.Popup({ offset: 25 }).setHTML(`
             <div style="padding: 8px; min-width: 200px;">
-              <strong style="font-size: 14px;">${event.genre || 'ジャンル未選択'}</strong><br/>
+              <strong style="font-size: 14px;">${event.genre || 'ジャンル未選択'}</strong>
               ${event.song ? `
                 <div style="margin-top: 6px; padding: 6px; background-color: #f3f4f6; border-radius: 4px;">
                   <div style="font-size: 12px; font-weight: 600; color: #1f2937;">
@@ -166,14 +171,6 @@ export function LocationMap({ currentLocation, events = [], onMapLoad }: Locatio
                   </div>
                 </div>
               ` : ''}
-              ${event.memo ? `
-                <div style="font-size: 12px; color: #666; margin-top: 6px;">
-                  📝 ${event.memo}
-                </div>
-              ` : ''}
-              <div style="font-size: 11px; color: #999; margin-top: 6px;">
-                🕒 ${new Date(event.timestamp).toLocaleString('ja-JP')}
-              </div>
             </div>
           `)
         )
@@ -182,17 +179,14 @@ export function LocationMap({ currentLocation, events = [], onMapLoad }: Locatio
       eventMarkers.current.push(marker);
     });
 
-    // すべてのマーカーが表示されるように地図を調整
-    if (events.length > 0) {
+    // すべてのイベントピンが表示されるように地図を調整（イベント追加時のみ）
+    // 注意: currentLocationは依存配列から除外して、位置更新で自動調整されないようにする
+    if (events.length > 0 && !hasInitialCentered) {
       const bounds = new maplibregl.LngLatBounds();
 
       events.forEach(event => {
         bounds.extend([event.longitude, event.latitude]);
       });
-
-      if (currentLocation) {
-        bounds.extend([currentLocation.longitude, currentLocation.latitude]);
-      }
 
       map.current.fitBounds(bounds, {
         padding: 50,
@@ -200,7 +194,7 @@ export function LocationMap({ currentLocation, events = [], onMapLoad }: Locatio
       });
     }
 
-  }, [events, mapLoaded, currentLocation]);
+  }, [events, mapLoaded, hasInitialCentered]);
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>

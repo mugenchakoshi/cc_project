@@ -10,7 +10,7 @@ import { useGeolocation } from './hooks/useGeolocation';
  * このコンポーネントはSSG（Static Site Generation）で動作します
  *
  * Google Maps風のUIで位置情報ベースの音楽推薦を提供
- * - 左側: 地図表示（Amazon Location Service / OpenStreetMap）
+ * - 左側: 地図表示（OpenStreetMap）
  * - 右側: サイドバー（フォーム + 送信履歴）
  */
 
@@ -32,22 +32,21 @@ export default function HomePage() {
   const geolocation = useGeolocation({
     enableHighAccuracy: true,
     timeout: 40000,
-    watch: false,  // ページ読み込み時から位置情報を自動取得
+    watch: true,  // 位置情報を継続的に追跡（マーカー更新用）
   });
 
   /**
-   * セッション初期化（ユーザー識別用Cookie）
+   * セッション初期化（ユーザー識別用 - localStorage）
    */
   useEffect(() => {
-    async function initSession() {
-      try {
-        await fetch('/api/session');
-      } catch (error) {
-        console.error('セッション初期化に失敗:', error);
+    // localStorage にセッションIDがなければ生成
+    if (typeof window !== 'undefined') {
+      let sessionId = localStorage.getItem('user_session_id');
+      if (!sessionId) {
+        sessionId = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+        localStorage.setItem('user_session_id', sessionId);
       }
     }
-
-    initSession();
   }, []);
 
   // 送信履歴の取得は不要（POSTレスポンスで直近3件が返る）
@@ -78,8 +77,11 @@ export default function HomePage() {
       const { latitude, longitude, accuracy } = position.coords;
       setLocationStatus(`位置情報取得成功 (精度: ${Math.round(accuracy)}m)`);
 
-      // Next.js API Route経由でAWS API Gatewayに送信（CORS回避）
-      const response = await fetch('/api/events', {
+      // localStorage からセッションIDを取得
+      const sessionId = localStorage.getItem('user_session_id');
+
+      // AWS API Gatewayに直接送信
+      const response = await fetch('https://n3j0j9wpk7.execute-api.us-east-1.amazonaws.com/api/events', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -88,7 +90,8 @@ export default function HomePage() {
           lat: latitude,
           lng: longitude,
           note: memo.trim() || undefined,
-          genre: genre || undefined
+          genre: genre || undefined,
+          user_id: sessionId
         })
       });
 
